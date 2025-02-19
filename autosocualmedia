@@ -12,8 +12,8 @@ if (!defined('ABSPATH')) {
 }
 
 // Include Twitter API library (you can use a library like "twitteroauth")
-require_once 'vendor/autoload.php'; // If using Composer
-use Abraham\TwitterOAuth\TwitterOAuth;
+//require_once 'vendor/autoload.php'; // If using Composer
+//use Abraham\TwitterOAuth\TwitterOAuth;//
 
 // Plugin settings page
 function sap_settings_page() {
