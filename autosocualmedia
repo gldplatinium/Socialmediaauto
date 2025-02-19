@@ -1,0 +1,95 @@
+<?php
+/*
+Plugin Name: Social Auto Poster
+Description: Automatically shares new posts to Twitter.
+Version: 1.0
+Author: Your Name
+*/
+
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Include Twitter API library (you can use a library like "twitteroauth")
+require_once 'vendor/autoload.php'; // If using Composer
+use Abraham\TwitterOAuth\TwitterOAuth;
+
+// Plugin settings page
+function sap_settings_page() {
+    ?>
+    <div class="wrap">
+        <h1>Social Auto Poster Settings</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('sap_settings_group');
+            do_settings_sections('social-auto-poster');
+            submit_button();
+            ?>
+        </form>
+    </div>
+    <?php
+}
+
+// Register settings
+function sap_register_settings() {
+    register_setting('sap_settings_group', 'sap_tw_consumer_key');
+    register_setting('sap_settings_group', 'sap_tw_consumer_secret');
+    register_setting('sap_settings_group', 'sap_tw_access_token');
+    register_setting('sap_settings_group', 'sap_tw_access_token_secret');
+    add_settings_section('sap_tw_section', 'Twitter API Settings', null, 'social-auto-poster');
+    add_settings_field('sap_tw_consumer_key', 'Consumer Key', 'sap_tw_consumer_key_callback', 'social-auto-poster', 'sap_tw_section');
+    add_settings_field('sap_tw_consumer_secret', 'Consumer Secret', 'sap_tw_consumer_secret_callback', 'social-auto-poster', 'sap_tw_section');
+    add_settings_field('sap_tw_access_token', 'Access Token', 'sap_tw_access_token_callback', 'social-auto-poster', 'sap_tw_section');
+    add_settings_field('sap_tw_access_token_secret', 'Access Token Secret', 'sap_tw_access_token_secret_callback', 'social-auto-poster', 'sap_tw_section');
+}
+add_action('admin_init', 'sap_register_settings');
+
+// Settings field callbacks
+function sap_tw_consumer_key_callback() {
+    $value = get_option('sap_tw_consumer_key');
+    echo '<input type="text" name="sap_tw_consumer_key" value="' . esc_attr($value) . '" />';
+}
+function sap_tw_consumer_secret_callback() {
+    $value = get_option('sap_tw_consumer_secret');
+    echo '<input type="text" name="sap_tw_consumer_secret" value="' . esc_attr($value) . '" />';
+}
+function sap_tw_access_token_callback() {
+    $value = get_option('sap_tw_access_token');
+    echo '<input type="text" name="sap_tw_access_token" value="' . esc_attr($value) . '" />';
+}
+function sap_tw_access_token_secret_callback() {
+    $value = get_option('sap_tw_access_token_secret');
+    echo '<input type="text" name="sap_tw_access_token_secret" value="' . esc_attr($value) . '" />';
+}
+
+// Add settings page to the admin menu
+function sap_add_settings_page() {
+    add_options_page('Social Auto Poster', 'Social Auto Poster', 'manage_options', 'social-auto-poster', 'sap_settings_page');
+}
+add_action('admin_menu', 'sap_add_settings_page');
+
+// Auto-post to Twitter when a post is published
+function sap_auto_post_to_twitter($post_id) {
+    // Check if this is a new post
+    if (get_post_status($post_id) != 'publish') {
+        return;
+    }
+
+    // Get post data
+    $post = get_post($post_id);
+    $post_title = $post->post_title;
+    $post_url = get_permalink($post_id);
+    $message = "New post: $post_title - $post_url";
+
+    // Twitter API credentials
+    $consumer_key = get_option('sap_tw_consumer_key');
+    $consumer_secret = get_option('sap_tw_consumer_secret');
+    $access_token = get_option('sap_tw_access_token');
+    $access_token_secret = get_option('sap_tw_access_token_secret');
+
+    // Post to Twitter
+    $connection = new TwitterOAuth($consumer_key, $consumer_secret, $access_token, $access_token_secret);
+    $connection->post('statuses/update', ['status' => $message]);
+}
+add_action('publish_post', 'sap_auto_post_to_twitter');
